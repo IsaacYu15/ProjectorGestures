@@ -57,7 +57,7 @@ class GestureRecognizer:
         dist = (pow(self.landmarkList[self.fingerTipIndices[0]][1] - self.landmarkList[self.fingerTipIndices[1]][1], 2) +
                 pow(self.landmarkList[self.fingerTipIndices[0]][0] - self.landmarkList[self.fingerTipIndices[1]][0], 2) )
         
-        print(dist)
+        # print(dist)
         return dist
 
     # def fingersRaised(self):
@@ -99,7 +99,7 @@ def main():
     r = sr.Recognizer()
     m = sr.Microphone()
 
-    cap = cv2.VideoCapture(1, cv2.CAP_DSHOW)
+    cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
     cap.set(3, w) 
     cap.set(4, h)  
     cap.set(cv2.CAP_PROP_FPS, 60) 
@@ -156,7 +156,8 @@ def main():
 
                 if dragging:
                     if not click:
-                        autopy.mouse.click()
+                        # autopy.mouse.click()
+                        autopy.key.tap(autopy.key.Code.DOWN_ARROW)
                         click = True
                     # else:
                     #     autopy.mouse.toggle(down=dragging)
