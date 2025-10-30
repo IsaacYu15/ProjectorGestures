@@ -1,4 +1,6 @@
+import requests
 import cv2
+from threading import Timer
 import mediapipe as mp
 import numpy as np
 import pyautogui
@@ -57,27 +59,23 @@ class GestureRecognizer:
         dist = (pow(self.landmarkList[self.fingerTipIndices[0]][1] - self.landmarkList[self.fingerTipIndices[1]][1], 2) +
                 pow(self.landmarkList[self.fingerTipIndices[0]][0] - self.landmarkList[self.fingerTipIndices[1]][0], 2) )
         
-        # print(dist)
         return dist
-
-    # def fingersRaised(self):
-    #     fingers = []
-
-    #     if self.landmarkList[self.fingerTipIndices[0]][1] > self.landmarkList[self.fingerTipIndices[0] - 1][1]:
-    #         fingers.append(1)
-    #     else:
-    #         fingers.append(0)
-
-    #     for i in range(1, 5):
-    #         if self.landmarkList[self.fingerTipIndices[i]][2] < self.landmarkList[self.fingerTipIndices[i] - 2][2]:
-    #             fingers.append(1)
-    #         else:
-    #             fingers.append(0)
-
-    #     return fingers
 
 def empty_callback(*args, **kwargs):
     pass
+
+def reset():
+    url = 'http://localhost:80/elm/groups/Group01/performer?active=1&sequenceId=17'
+    requests.post(url)
+
+def on_click():
+    # autopy.key.tap(autopy.key.Code.DOWN_ARROW)
+    autopy.mouse.click()
+    url = 'http://localhost:80/elm/groups/Group01/performer?active=1&sequenceId=19'
+    requests.post(url)
+
+    t = Timer(1, reset)
+    t.start()
 
 def main():
     w = 600
@@ -87,17 +85,6 @@ def main():
     prev_x, prev_y = 0, 0
     curr_x, curr_y = 0, 0
     prev_time = 0
-    stab_buf = []
-    stab_thresh = 10
-    stab_rad = 10
-    scroll_down_speed = -60
-    scroll_up_speed = 60
-    interval = 0.01 # interval (in seconds) between keystrokes when typing.
-    timeout = 5 # duration (in seconds) that the speech recognizer waits for the speaker to start talking before it times out.
-    phrase_time_limit = 10 # duration (in seconds) for capturing speech after it has started, regardless of any pauses or breaks in speaking.
-    
-    r = sr.Recognizer()
-    m = sr.Microphone()
 
     cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
     cap.set(3, w) 
@@ -109,7 +96,6 @@ def main():
     scr_w -= edgeBuffer
     scr_h -= edgeBuffer
 
-    hold = False
     click = False
 
     buffer_max = 5
@@ -119,6 +105,8 @@ def main():
     cv2.createTrackbar('W','Archand',100, round(w / 2), empty_callback)
     cv2.createTrackbar('H','Archand',100, round(h / 2), empty_callback)
 
+    reset()
+    
     while True:
         _, img = cap.read()
         process_frame = cv2.flip(img, 1) 
@@ -136,8 +124,9 @@ def main():
         cv2.rectangle(img, (leftBound, topBound) , (rightBound, botBound), (255, 0, 255), 2)
 
         if len(lmList) != 0:
-            x1, y1 = lmList[8][1:]
-            
+            x1 = round ((lmList[detector.fingerTipIndices[0]][1] + lmList[detector.fingerTipIndices[1]][1])/2)
+            y1 = round ((lmList[detector.fingerTipIndices[1]][2] + lmList[detector.fingerTipIndices[1]][2])/2)
+
             pinch = detector.pinching()
             if (pinch < 100):
                 state_buffer.append(1)
@@ -156,12 +145,8 @@ def main():
 
                 if dragging:
                     if not click:
-                        # autopy.mouse.click()
-                        autopy.key.tap(autopy.key.Code.DOWN_ARROW)
+                        on_click()
                         click = True
-                    # else:
-                    #     autopy.mouse.toggle(down=dragging)
-                    #     print("dragging")
                 else:
                     click = False
 
@@ -171,30 +156,6 @@ def main():
 
                     cv2.circle(img, (x1, y1), 7, (255, 0, 255), cv2.FILLED)
                     prev_x, prev_y = curr_x, curr_y
-
-            
-            # # Single left click           
-            # if fingers[1] == 1 and fingers[2] == 1 and click:
-            #     autopy.mouse.click()
-            #     click = False
-            
-            # # Hold left click and move
-            # if fingers[0] == 0 and all(f == 1 for f in fingers[1:]):
-            #     if not hold:
-            #         autopy.mouse.toggle(down=True)
-            #         hold = True
-
-            #     x3 = np.interp(x1, (leftBound, rightBound), (edgeBuffer, scr_w))
-            #     y3 = np.interp(y1, (topBound, botBound), (edgeBuffer, scr_h))
-            #     curr_x = prev_x + (x3 - prev_x) / smooth
-            #     curr_y = prev_y + (y3 - prev_y) / smooth
-            #     autopy.mouse.move(scr_w - curr_x, curr_y)
-            #     cv2.circle(img, (x1, y1), 7, (255, 0, 255), cv2.FILLED)
-            #     prev_x, prev_y = curr_x, curr_y
-            # else:
-            #     if hold:
-            #         autopy.mouse.toggle(down=False)
-            #         hold = False
 
         curr_time = time.time()
         fps = 1 / (curr_time - prev_time)
